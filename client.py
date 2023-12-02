@@ -8,7 +8,7 @@ import time
 import logging
 from decoder import decode_unicode_string
 from colorama import init, Fore
-
+sys.dont_write_bytecode = True
 init()
 
 session = ""
