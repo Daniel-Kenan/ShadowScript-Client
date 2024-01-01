@@ -23,7 +23,13 @@ init()
 screen = get_monitors()[0]  # Assuming a single monitor setup
 screen_size = (screen.width, screen.height)
 session = ""
+is_sharing_desktop = False  
 
+def toggle_screen_sharing():
+    global is_sharing_desktop
+    is_sharing_desktop = True if not is_sharing_desktop else False
+    status = "ON" if is_sharing_desktop else "OFF"
+    return f"remote screen sharing is {status}"
 def get_info():
     try:
         ip_address = socket.gethostbyname(socket.gethostname())
@@ -71,7 +77,16 @@ async def connect_to_websocket(url, room, retry_interval, debug, output_filename
                         session = ""
                         servant_response = "terminal- session cleared"
                         await websocket.send(servant_response)
-
+                    elif message_from_master.startswith("share-screen"):
+                        message_from_master = message_from_master.rstrip().strip().split(" ")
+                        global is_sharing_desktop
+                        servant_response=""
+                        if len(message_from_master) == 1: servant_response=toggle_screen_sharing()
+                        else: 
+                            if message_from_master[1].lower() == "on": is_sharing_desktop,servant_response = True, f"remote screen sharing is ON"
+                            elif message_from_master[1].lower() == "off": is_sharing_desktop = False, f"remote screen sharing is set to OFF"
+                            else : servant_response ="Invalid Arguments supplied for screen sharing"
+                        await websocket.send(servant_response)
                     elif message_from_master.startswith("send-file"):
                         # Handle sending a file
                         _, file_path = message_from_master.split(" ", 1)
@@ -128,10 +143,10 @@ async def send_video_frames(websocket, debug):
             frame_base64 = "frame_data:"+base64.b64encode(buffer).decode('utf-8')
 
             # Send the frame to the client as a JSON object
-            await websocket.send(frame_base64)
-
+            if is_sharing_desktop: await websocket.send(frame_base64)
+            else :  await asyncio.sleep(0.05)
             # Sleep for a short time to control the frame rate
-            # await asyncio.sleep(0.05)
+            
 
     except asyncio.CancelledError:
         if debug:
